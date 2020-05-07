@@ -3,7 +3,19 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-nio-file</artifactId>
-  <version>0.0.3</version>
+  <version>0.0.4</version>
+
+  <issueManagement>
+    <url>https://github.com/umjammer/vavi-nio-file/issues</url>
+  </issueManagement>
+  <scm>
+    <url>https://github.com/umjammer/vavi-nio-file</url>
+  </scm>
+  <name>vavi-nio-file</name>
+  <url>https://github.com/umjammer/vavi-nio-file</url>
+  <description>0.0.4
+
+    fix test base</description>
 
   <build>
     <plugins>
@@ -26,6 +38,15 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <configuration>
+          <argLine>-Djava.util.logging.config.file=src/test/resources/logging.properties</argLine>
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
@@ -40,7 +61,7 @@
     <dependency>
       <groupId>com.github.umjammer</groupId>
       <artifactId>vavi-commons</artifactId>
-      <version>1.0.15</version>
+      <version>1.0.16</version>
     </dependency>
 
     <dependency>
@@ -55,11 +76,27 @@
       <version>5.3.0</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-commons</artifactId>
+      <version>1.5.2</version>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
+      <!--
+        if you want to write sub class test of this base test,
+        you should include this dependency in your pom.xml 
+      -->
       <groupId>com.rainerhahnekamp</groupId>
       <artifactId>sneakythrow</artifactId>
       <version>1.2.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.jimfs</groupId>
+      <artifactId>jimfs</artifactId>
+      <version>1.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
