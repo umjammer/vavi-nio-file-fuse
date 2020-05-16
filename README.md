@@ -3,3 +3,5 @@
 # vavi-nio-file
 
  * cache for file system
+ * utilities
+ * base test case

@@ -3,15 +3,15 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-nio-file</artifactId>
-  <version>0.0.4</version>
+  <version>0.0.5</version>
 
+  <name>vavi-nio-file</name>
   <issueManagement>
     <url>https://github.com/umjammer/vavi-nio-file/issues</url>
   </issueManagement>
   <scm>
     <url>https://github.com/umjammer/vavi-nio-file</url>
   </scm>
-  <name>vavi-nio-file</name>
   <url>https://github.com/umjammer/vavi-nio-file</url>
   <description>0.0.4
 
