@@ -3,7 +3,7 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-nio-file</artifactId>
-  <version>0.0.6</version>
+  <version>0.0.7</version>
 
   <name>vavi-nio-file</name>
   <issueManagement>
@@ -13,7 +13,11 @@
     <url>https://github.com/umjammer/vavi-nio-file</url>
   </scm>
   <url>https://github.com/umjammer/vavi-nio-file</url>
-  <description>0.0.4
+  <description>0.0.7
+
+    update utility
+
+0.0.4
 
     fix test base</description>
 
@@ -86,7 +90,7 @@
     <dependency>
       <!--
         if you want to write sub class test of this base test,
-        you should include this dependency in your pom.xml 
+        you should include this dependency in your pom.xml
       -->
       <groupId>com.rainerhahnekamp</groupId>
       <artifactId>sneakythrow</artifactId>
