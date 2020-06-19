@@ -3,7 +3,7 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-nio-file</artifactId>
-  <version>0.0.11</version>
+  <version>0.0.12</version>
 
   <name>vavi-nio-file</name>
   <issueManagement>
