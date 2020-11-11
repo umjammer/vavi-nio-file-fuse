@@ -12,7 +12,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -23,10 +25,10 @@ import java.util.stream.Collectors;
  * @version 0.00 2017/03/16 umjammer initial version <br>
  */
 public abstract class Cache<T> {
-    /** <NFC normalized path {@link Path}, {@link T}> */
+    /** <{@link Path}, {@link T}> */
     protected Map<Path, T> entryCache = new ConcurrentHashMap<>(); // TODO refresh
 
-    /** <NFC normalized path {@link Path}, {@link List<Path>}> */
+    /** <{@link Path}, {@link List<Path>}> */
     protected Map<Path, List<Path>> folderCache = new ConcurrentHashMap<>(); // TODO refresh
 
     /** There is metadata or not. */
@@ -34,12 +36,12 @@ public abstract class Cache<T> {
         return entryCache.containsKey(path);
     }
 
-    /** */
+    /** raw operation for the cache */
     public T getFile(Path path) {
         return entryCache.get(path);
     }
 
-    /** */
+    /** raw operation for the cache  */
     public T putFile(Path path, T entry) {
         return entryCache.put(path, entry);
     }
@@ -66,10 +68,10 @@ public abstract class Cache<T> {
         return folderCache.put(path, children);
     }
 
-    /** */
+    /** parent folder cache will be modified */
     public void addEntry(Path path, T entry) {
         entryCache.put(path, entry);
-        Path parentPath = path.getParent();
+        Path parentPath = path.toAbsolutePath().getParent();
         List<Path> bros = folderCache.get(parentPath);
         if (bros == null) {
             bros = new ArrayList<>();
@@ -78,10 +80,11 @@ public abstract class Cache<T> {
         bros.add(path);
     }
 
-    /** */
+    /** parent folder cache will be modified */
     public void removeEntry(Path path) {
         entryCache.remove(path);
-        List<Path> bros = folderCache.get(path.getParent());
+        Path parentPath = path.toAbsolutePath().getParent();
+        List<Path> bros = folderCache.get(parentPath);
         if (bros != null) {
             bros.remove(path);
         }
@@ -101,12 +104,13 @@ public abstract class Cache<T> {
         }
     }
 
-    /** */
+    /** move folder */
     private List<Path> changeParent(List<Path> children, Path parent) {
         return children.stream().map(p -> parent.resolve(p.getFileName())).collect(Collectors.toList());
     }
 
     /**
+     * query for cache
      * @throws NoSuchFileException must be thrown when the path is not found.
      */
     public abstract T getEntry(Path path) throws IOException;
@@ -121,6 +125,34 @@ public abstract class Cache<T> {
         } catch (NoSuchFileException e) {
             return false;
         }
+    }
+
+    /**
+     * query for opposite direction
+     * uses {@link Object#equals(Object)} for comparison
+     * @throws NoSuchElementException when not found
+     */
+    public Path getEntry(T target) {
+        for (Map.Entry<Path, T> e : entryCache.entrySet()) {
+            if (e.getValue().equals(target)) {
+                return e.getKey();
+            }
+        }
+        throw new NoSuchElementException(target.toString());
+    }
+
+    /**
+     * query for opposite direction
+     * @param query is used for comparison
+     * @throws NoSuchElementException when not found
+     */
+    public Path getEntry(Function<T, Boolean> query) {
+        for (Map.Entry<Path, T> e : entryCache.entrySet()) {
+            if (query.apply(e.getValue())) {
+                return e.getKey();
+            }
+        }
+        throw new NoSuchElementException(query.toString());
     }
 }
 
