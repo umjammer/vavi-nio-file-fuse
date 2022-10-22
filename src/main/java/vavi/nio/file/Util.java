@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import vavi.io.Seekable;
 import vavi.util.Debug;
 
 
@@ -65,14 +66,20 @@ public interface Util {
     }
 
     /**
-     * TODO out source
-     *
      * @see "ignoreAppleDouble"
      */
     static boolean isAppleDouble(Path path) throws IOException {
 //System.err.println("path.toRealPath(): " + path.toRealPath());
 //System.err.println("path.getFileName(): " + path.getFileName());
-        String filename = path.getFileName().toString();
+        return isAppleDouble(path.getFileName().toString());
+    }
+
+    /**
+     * TODO out source
+     *
+     * @see "ignoreAppleDouble"
+     */
+    static boolean isAppleDouble(String filename) {
         return filename.startsWith("._") ||
                filename.equals(".DS_Store") ||
                filename.equals(".localized") ||
@@ -83,8 +90,8 @@ public interface Util {
      * @return nullable
      */
     static <T extends U, U> T getOneOfOptions(Class<T> clazz, Set<? extends U> options) {
-        if (options != null && options.stream().anyMatch(o -> clazz.isInstance(o))) {
-            return clazz.cast(options.stream().filter(o -> clazz.isInstance(o)).findFirst().get());
+        if (options != null && options.stream().anyMatch(clazz::isInstance)) {
+            return clazz.cast(options.stream().filter(clazz::isInstance).findFirst().get());
         } else {
             return null;
         }
@@ -124,7 +131,7 @@ public interface Util {
     /**
      * @see java.nio.file.Files#newByteChannel(Path, Set, java.nio.file.attribute.FileAttribute...)
      */
-    static abstract class SeekableByteChannelForWriting implements SeekableByteChannel {
+    abstract class SeekableByteChannelForWriting implements SeekableByteChannel {
         protected long written;
         private WritableByteChannel wbc;
 
@@ -142,13 +149,13 @@ public interface Util {
 
         @Override
         public long position() throws IOException {
-Debug.println(Level.FINE, "writable byte channel: get position: " + written);
+Debug.println(Level.WARNING, "SeekableByteChannelForWriting: get position: " + written);
             return written;
         }
 
         @Override
         public SeekableByteChannel position(long pos) throws IOException {
-Debug.println(Level.FINE, "writable byte channel: set position: " + pos);
+Debug.println(Level.WARNING, "SeekableByteChannelForWriting: set position: " + pos);
             written = pos;
             return this;
         }
@@ -160,7 +167,7 @@ Debug.println(Level.FINE, "writable byte channel: set position: " + pos);
 
         @Override
         public SeekableByteChannel truncate(long size) throws IOException {
-Debug.println("writable byte channel: truncate: " + size + ", " + written);
+Debug.println(Level.FINE, "SeekableByteChannelForWriting: truncate: " + size + ", " + written);
             // TODO implement correctly
 
             if (written > size) {
@@ -173,20 +180,20 @@ Debug.println("writable byte channel: truncate: " + size + ", " + written);
         @Override
         public int write(ByteBuffer src) throws IOException {
             int n = wbc.write(src);
-Debug.println("writable byte channel: write: " + n + "/" + written + " -> " + (written + n));
+Debug.println(Level.FINE, "SeekableByteChannelForWriting: write: " + n + "/" + written + " -> " + (written + n));
             written += n;
             return n;
         }
 
         @Override
         public long size() throws IOException {
-Debug.println(Level.FINE, "writable byte channel: size: " + written);
+Debug.println(Level.FINE, "SeekableByteChannelForWriting: size: " + written);
             return written;
         }
 
         @Override
         public void close() throws IOException {
-Debug.println("writable byte channel: close");
+Debug.println(Level.FINE, "SeekableByteChannelForWriting: close");
             wbc.close();
         }
     }
@@ -194,12 +201,14 @@ Debug.println("writable byte channel: close");
     /**
      * @see java.nio.file.Files#newByteChannel(Path, Set, java.nio.file.attribute.FileAttribute...)
      */
-    static abstract class SeekableByteChannelForReading implements SeekableByteChannel {
+    abstract class SeekableByteChannelForReading implements SeekableByteChannel {
         private long read = 0;
         private ReadableByteChannel rbc;
         private long size;
+        InputStream in;
 
         public SeekableByteChannelForReading(InputStream in) throws IOException {
+            this.in = in;
             this.rbc = Channels.newChannel(in);
             this.size = getSize();
         }
@@ -213,13 +222,26 @@ Debug.println("writable byte channel: close");
 
         @Override
         public long position() throws IOException {
-Debug.println(Level.FINE, "readable byte channel: get position: " + read);
+            if (in instanceof Seekable) {
+                // see com.github.fge.filesystem.driver.DoubleCachedFileSystemDriver#downloadEntry
+Debug.println(Level.FINE, "SeekableByteChannelForReading: position");
+                read = ((Seekable) in).position();
+            } else {
+Debug.println(Level.WARNING, "SeekableByteChannelForReading: position: non seekable input: " + read + ", " + in.getClass().getName());
+            }
             return read;
         }
 
         @Override
         public SeekableByteChannel position(long pos) throws IOException {
-Debug.println(Level.FINE, "readable byte channel: set position: " + pos);
+            if (in instanceof Seekable) {
+                // see com.github.fge.filesystem.driver.DoubleCachedFileSystemDriver#downloadEntry
+Debug.println(Level.FINE, "SeekableByteChannelForReading: set position: " + pos);
+                ((Seekable) in).position(pos);
+            } else {
+Debug.println(Level.WARNING, "SeekableByteChannelForReading: set position: non seekable input: " + pos + ", " + in.getClass().getName());
+            }
+
             read = pos;
             return this;
         }
@@ -228,7 +250,7 @@ Debug.println(Level.FINE, "readable byte channel: set position: " + pos);
         public int read(ByteBuffer dst) throws IOException {
             int n = rbc.read(dst);
             if (n > 0) {
-Debug.println("readable byte channel: read: " + n + "/" + read + " -> " + (read + n));
+Debug.println(Level.FINER, "SeekableByteChannelForReading: read: " + n + "/" + read + " -> " + (read + n));
                 read += n;
             }
             return n;
@@ -274,7 +296,7 @@ Debug.println("readable byte channel: read: " + n + "/" + read + " -> " + (read 
     /**
      * @see java.nio.file.Files#newInputStream(Path, OpenOption...)
      */
-    static abstract class InputStreamForDownloading extends FilterInputStream {
+    abstract class InputStreamForDownloading extends FilterInputStream {
         private AtomicBoolean closed = new AtomicBoolean();
 
         private boolean closeOnCloseInternal = true;
@@ -291,7 +313,7 @@ Debug.println("readable byte channel: read: " + n + "/" + read + " -> " + (read 
         @Override
         public void close() throws IOException {
             if (closed.getAndSet(true)) {
-Debug.printf("Skip double close of stream %s", this);
+Debug.printf(Level.FINE, "Skip double close of stream %s", this);
                 return;
             }
 
@@ -310,7 +332,7 @@ Debug.printf("Skip double close of stream %s", this);
      *
      * @see java.nio.file.Files#newOutputStream(Path, OpenOption...)
      */
-    static abstract class OutputStreamForUploading extends FilterOutputStream {
+    abstract class OutputStreamForUploading extends FilterOutputStream {
         private AtomicBoolean closed = new AtomicBoolean();
 
         private boolean closeOnCloseInternal = true;
@@ -331,7 +353,7 @@ Debug.printf("Skip double close of stream %s", this);
         @Override
         public void close() throws IOException {
             if (closed.getAndSet(true)) {
-Debug.printf("Skip double close of stream %s", this);
+Debug.printf(Level.FINE, "Skip double close of stream %s", this);
                 return;
             }
 
@@ -357,7 +379,7 @@ Debug.printf("Skip double close of stream %s", this);
     /**
      * @see java.nio.file.Files#newOutputStream(Path, OpenOption...)
      */
-    static abstract class StealingOutputStreamForUploading<T> extends OutputStreamForUploading {
+    abstract class StealingOutputStreamForUploading<T> extends OutputStreamForUploading {
         // TODO pool
         private ExecutorService executor = Executors.newSingleThreadExecutor();
         private Future<T> future;
@@ -424,7 +446,7 @@ Debug.printf("Skip double close of stream %s", this);
     }
 
     /** */
-    static final int BUFFER_SIZE = 4 * 1024 * 1024;
+    int BUFFER_SIZE = 4 * 1024 * 1024;
 
     /**
      * @see #BUFFER_SIZE

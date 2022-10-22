@@ -31,29 +31,38 @@ public abstract class Cache<T> {
     /** <{@link Path}, {@link List<Path>}> */
     protected Map<Path, List<Path>> folderCache = new ConcurrentHashMap<>(); // TODO refresh
 
+    /** allow duplicated name in the same directory or not, e.g. google drive allows it. */
+    private boolean allowDuplicatedName = false;
+
+    /** sets allow duplicated name in the same directory or not */
+    public void setAllowDuplicatedName(boolean allowDuplicatedName) {
+        this.allowDuplicatedName = allowDuplicatedName;
+    }
+
     /** There is metadata or not. */
     public boolean containsFile(Path path) {
-        return entryCache.containsKey(path);
+        return entryCache.containsKey(path.toAbsolutePath());
     }
 
     /** raw operation for the cache */
     public T getFile(Path path) {
-        return entryCache.get(path);
+        return entryCache.get(path.toAbsolutePath());
     }
 
-    /** raw operation for the cache  */
+    /** raw operation for the cache */
     public T putFile(Path path, T entry) {
-        return entryCache.put(path, entry);
+//System.err.println("CACHE.0: " + path);
+        return entryCache.put(path.toAbsolutePath(), entry);
     }
 
     /** There are children's metadata or not. */
     public boolean containsFolder(Path path) {
-        return folderCache.containsKey(path);
+        return folderCache.containsKey(path.toAbsolutePath());
     }
 
     /** Gets children path. */
     public List<Path> getFolder(Path path) {
-        return folderCache.get(path);
+        return folderCache.get(path.toAbsolutePath());
     }
 
     /**
@@ -63,30 +72,32 @@ public abstract class Cache<T> {
         return containsFolder(path) ? getFolder(path).size() : -1;
     }
 
-    /** */
+    /** raw operation for the folder cache */
     public List<Path> putFolder(Path path, List<Path> children) {
-        return folderCache.put(path, children);
+        return folderCache.put(path.toAbsolutePath(), children.stream().map(Path::toAbsolutePath).collect(Collectors.toList()));
     }
 
     /** parent folder cache will be modified */
     public void addEntry(Path path, T entry) {
-        entryCache.put(path, entry);
+//System.err.println("CACHE.1: " + path);
+        entryCache.put(path.toAbsolutePath(), entry);
+        // parent
         Path parentPath = path.toAbsolutePath().getParent();
-        List<Path> bros = folderCache.get(parentPath);
-        if (bros == null) {
-            bros = new ArrayList<>();
-            folderCache.put(parentPath, bros);
+        List<Path> bros = folderCache.computeIfAbsent(parentPath.toAbsolutePath(), k -> new ArrayList<>());
+        if (!bros.contains(path.toAbsolutePath()) || allowDuplicatedName) {
+//System.err.println("DIR CACHE.1: " + path);
+            bros.add(path.toAbsolutePath());
         }
-        bros.add(path);
     }
 
     /** parent folder cache will be modified */
     public void removeEntry(Path path) {
-        entryCache.remove(path);
+        entryCache.remove(path.toAbsolutePath());
+        // parent
         Path parentPath = path.toAbsolutePath().getParent();
-        List<Path> bros = folderCache.get(parentPath);
+        List<Path> bros = folderCache.get(parentPath.toAbsolutePath());
         if (bros != null) {
-            bros.remove(path);
+            bros.remove(path.toAbsolutePath());
         }
     }
 
@@ -94,7 +105,7 @@ public abstract class Cache<T> {
     public void moveEntry(Path source, Path target, T entry) {
         List<Path> children = getFolder(source);
         if (children != null) {
-            folderCache.remove(source);
+            folderCache.remove(source.toAbsolutePath());
         }
         removeEntry(source);
         addEntry(target, entry);

@@ -4,27 +4,25 @@
  * Programmed by Naohide Sano
  */
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
-
 import vavi.nio.file.Base;
 import vavi.nio.file.Util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -101,11 +99,26 @@ class Test01 {
         if (Files.exists(dst)) {
             Files.delete(dst);
         }
-        InputStream is = new FileInputStream(src.toFile());
-        OutputStream os = new FileOutputStream(dst.toFile());
+        InputStream is = Files.newInputStream(src);
+        OutputStream os = Files.newOutputStream(dst);
         Util.transfer(is, os);
         assertEquals(Files.size(src), Files.size(dst));
         Files.delete(dst);
+        assertFalse(Files.exists(dst));
+    }
+
+    @Test
+    void test06() throws Exception {
+        FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+        Path dir = fs.getPath("test06");
+        Files.createDirectory(dir);
+        Path src = Paths.get(getClass().getResource("Hello.java").toURI());
+        Files.copy(src, dir.resolve(src.getFileName().toString()));
+        Base.removeTree(dir, false);
+        assertTrue(Files.exists(dir));
+        Files.copy(src, dir.resolve(src.getFileName().toString()));
+        Base.removeTree(dir, true);
+        assertFalse(Files.exists(dir));
     }
 }
 
