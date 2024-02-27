@@ -4,21 +4,17 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>vavi</groupId>
-    <artifactId>vavi-apps-fuse</artifactId>
+  <groupId>vavi</groupId>
     <version>0.1.9</version>
-  </parent>
+  <artifactId>vavi-nio-file-fuse</artifactId>
 
-  <artifactId>vavi-net-fuse</artifactId>
-
-  <name>vavi-net-fuse</name>
-  <url>https://github.com/umjammer/vavi-net-fuse</url>
+  <name>vavi-nio-file-fuse</name>
+  <url>https://github.com/umjammer/vavi-nio-file-fuse</url>
   <scm>
-    <url>https://github.com/umjammer/vavi-net-fuse</url>
+    <url>https://github.com/umjammer/vavi-nio-file-fuse</url>
   </scm>
   <issueManagement>
-    <url>https://github.com/umjammer/vavi-net-fuse/issues</url>
+    <url>https://github.com/umjammer/vavi-nio-file-fuse/issues</url>
   </issueManagement>
 
   <profiles>
@@ -92,20 +88,37 @@
     </plugins>
   </build>
 
+  <repositories>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.10.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
-    <dependency>
-      <!-- fuse jnr (co.paralleluniverse / com.github.umjammer) -->
-      <groupId>com.github.umjammer</groupId>
+    <dependency> <!-- fuse jnr -->
+      <groupId>com.github.umjammer</groupId> <!-- co.paralleluniverse / com.github.umjammer -->
       <artifactId>javafs</artifactId>
       <version>0.1.7v</version>
     </dependency>
-    <dependency>
-      <!-- fuse jna (net.fuse-jna) -->
-      <groupId>com.github.umjammer</groupId>
+    <dependency> <!-- fuse jna -->
+      <groupId>com.github.umjammer</groupId> <!--  net.fuse-jna / com.github.umjammer -->
       <artifactId>fuse-jna</artifactId>
       <version>1.0.5v</version>
     </dependency>
-    <dependency>
+    <dependency> <!-- fuse jnr -->
       <groupId>com.github.serceman</groupId>
       <artifactId>jnr-fuse</artifactId>
       <version>0.5.7</version>
@@ -118,8 +131,9 @@
     </dependency>
 
     <dependency>
-      <groupId>${vavi-nio-file-base.groupId}</groupId>
+      <groupId>com.github.umjammer</groupId> <!-- com.github.fge / com.github.umjammer -->
       <artifactId>vavi-nio-file-base</artifactId>
+      <version>0.0.14v</version>
     </dependency>
 
     <dependency>
