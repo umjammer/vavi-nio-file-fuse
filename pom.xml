@@ -1,36 +1,86 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>vavi</groupId>
-  <artifactId>vavi-nio-file</artifactId>
-  <version>0.0.15</version>
+  <artifactId>vavi-nio-file-fuse</artifactId>
+  <version>0.0.16</version>
 
-  <name>vavi-nio-file</name>
-  <issueManagement>
-    <url>https://github.com/umjammer/vavi-nio-file/issues</url>
-  </issueManagement>
+  <name>vavi-nio-file-fuse</name>
+  <url>https://github.com/umjammer/vavi-nio-file-fuse</url>
   <scm>
-    <url>https://github.com/umjammer/vavi-nio-file</url>
+    <url>https://github.com/umjammer/vavi-nio-file-fuse</url>
   </scm>
-  <url>https://github.com/umjammer/vavi-nio-file</url>
-  <description>java nio file basics</description>
+  <issueManagement>
+    <url>https://github.com/umjammer/vavi-nio-file-fuse/issues</url>
+  </issueManagement>
+
+  <profiles>
+    <profile>
+      <id>local</id>
+      <activation>
+        <file>
+          <exists>${basedir}/local.properties</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>properties-maven-plugin</artifactId>
+            <version>1.1.0</version>
+            <executions>
+              <execution>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>read-project-properties</goal>
+                </goals>
+                <configuration>
+                  <files>
+                    <file>${basedir}/local.properties</file>
+                  </files>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.2.2</version>
+            <configuration>
+              <includes>
+                <include>**/Main4</include>
+              </includes>
+              <environmentVariables>
+                <FUSE_MOUNT_POINT>${fuse.mountPoint}</FUSE_MOUNT_POINT>
+              </environmentVariables>
+              <argLine>
+                -Djava.util.logging.config.file=${project.build.testOutputDirectory}/logging.properties
+                -Djna.library.path=/usr/local/lib
+              </argLine>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.10.1</version>
+        <version>3.11.0</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <encoding>UTF-8</encoding>
+          <release>17</release>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.2</version>
+        <version>3.3.0</version>
         <executions>
           <execution>
             <goals>
@@ -38,15 +88,6 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
-        <configuration>
-          <argLine>-Djava.util.logging.config.file=${project.build.testOutputDirectory}/logging.properties</argLine>
-          <trimStackTrace>false</trimStackTrace>
-        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -63,7 +104,7 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.9.1</version>
+        <version>5.10.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -71,10 +112,32 @@
   </dependencyManagement>
 
   <dependencies>
+    <dependency> <!-- fuse jnr -->
+      <groupId>com.github.umjammer</groupId> <!-- co.paralleluniverse / com.github.umjammer -->
+      <artifactId>javafs</artifactId>
+      <version>0.1.7v</version>
+    </dependency>
+    <dependency> <!-- fuse jna -->
+      <groupId>com.github.umjammer</groupId> <!--  net.fuse-jna / com.github.umjammer -->
+      <artifactId>fuse-jna</artifactId>
+      <version>1.0.5v</version>
+    </dependency>
+    <dependency> <!-- fuse jnr -->
+      <groupId>com.github.serceman</groupId>
+      <artifactId>jnr-fuse</artifactId>
+      <version>0.5.7</version>
+    </dependency>
+
     <dependency>
       <groupId>com.github.umjammer</groupId>
       <artifactId>vavi-commons</artifactId>
-      <version>1.1.8</version>
+      <version>1.1.10</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.umjammer</groupId> <!-- com.github.fge / com.github.umjammer -->
+      <artifactId>vavi-nio-file-base</artifactId>
+      <version>0.0.14v</version>
     </dependency>
 
     <dependency>
@@ -92,21 +155,16 @@
       <artifactId>junit-platform-commons</artifactId>
       <scope>test</scope>
     </dependency>
-
     <dependency>
-      <!--
-        if you want to write sub class test of this base test,
-        you should include this dependency in your pom.xml
-      -->
-      <groupId>com.rainerhahnekamp</groupId>
-      <artifactId>sneakythrow</artifactId>
-      <version>1.2.0</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>com.google.jimfs</groupId>
       <artifactId>jimfs</artifactId>
-      <version>1.2</version>
+      <version>1.3.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
