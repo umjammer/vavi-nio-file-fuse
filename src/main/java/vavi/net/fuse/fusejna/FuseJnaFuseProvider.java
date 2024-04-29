@@ -23,5 +23,3 @@ public class FuseJnaFuseProvider implements FuseProvider {
         return new FuseJnaFuse();
     }
 }
-
-/* */

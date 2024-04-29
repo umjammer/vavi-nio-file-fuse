@@ -23,5 +23,3 @@ public class JnrFuseFuseProvider implements FuseProvider {
         return new JnrFuseFuse();
     }
 }
-
-/* */

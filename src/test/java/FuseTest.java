@@ -20,7 +20,7 @@ import vavi.util.Debug;
 
 
 /**
- * Test4. (jimfs, fuse)
+ * FuseTest. (jimfs, fuse)
  * <p>
  * upload
  * <ul>
@@ -47,12 +47,7 @@ import vavi.util.Debug;
  * @author <a href="mailto:umjammer@gmail.com">Naohide Sano</a> (umjammer)
  * @version 0.00 2017/03/19 umjammer initial version <br>
  */
-public class Main4 {
-
-    static {
-        System.setProperty("vavi.util.logging.VaviFormatter.extraClassMethod",
-                           "co\\.paralleluniverse\\.fuse\\.LoggedFuseFilesystem#log");
-    }
+public class FuseTest {
 
     FileSystem fs;
     String mountPoint;
@@ -63,6 +58,7 @@ public class Main4 {
 
         mountPoint = System.getenv("FUSE_MOUNT_POINT");
 Debug.println("mountPoint: " + mountPoint);
+Debug.println("jna.library.path: " + System.getProperty("jna.library.path"));
 
         fs = Jimfs.newFileSystem(Configuration.unix());
 
@@ -78,8 +74,8 @@ Debug.println("mountPoint: " + mountPoint);
     @EnabledIfEnvironmentVariable(named = "FUSE_MOUNT_POINT", matches = ".+")
     @ValueSource(strings = {
         "vavi.net.fuse.javafs.JavaFSFuseProvider",
-        "vavi.net.fuse.jnrfuse.JnrFuseFuseProvider",
         "vavi.net.fuse.fusejna.FuseJnaFuseProvider",
+        "vavi.net.fuse.jnrfuse.JnrFuseFuseProvider", // TODO must be last, this provider has umount problem
     })
     public void test01(String providerClassName) throws Exception {
         System.setProperty("vavi.net.fuse.FuseProvider.class", providerClassName);
@@ -96,7 +92,7 @@ System.err.println("--------------------------- " + providerClassName + " ------
      * @param args none
      */
     public static void main(String[] args) throws Exception {
-        Main4 app = new Main4();
+        FuseTest app = new FuseTest();
         app.before();
 
         System.setProperty("vavi.net.fuse.FuseProvider.class", "vavi.net.fuse.javafs.JavaFSFuseProvider");
@@ -108,5 +104,3 @@ System.err.println("--------------------------- " + providerClassName + " ------
         Fuse.getFuse().mount(app.fs, app.mountPoint, app.options);
     }
 }
-
-/* */

@@ -5,7 +5,6 @@
  */
 
 import java.nio.file.FileSystem;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,18 +20,13 @@ import vavi.util.Debug;
 
 
 /**
- * Test2. (jimfs, fuse)
+ * LargeFileTest. (jimfs, fuse)
  * <p>
  *
  * @author <a href="mailto:umjammer@gmail.com">Naohide Sano</a> (umjammer)
  * @version 0.00 2017/03/19 umjammer initial version <br>
  */
-public class Main2 {
-
-    static {
-        System.setProperty("vavi.util.logging.VaviFormatter.extraClassMethod",
-                           "co\\.paralleluniverse\\.fuse\\.LoggedFuseFilesystem#log");
-    }
+public class LargeFileTest {
 
     FileSystem fs;
     String mountPoint;
@@ -74,11 +68,9 @@ System.err.println("--------------------------- " + providerClassName + " ------
      * @param args none
      */
     public static void main(String[] args) throws Exception {
-        Main2 app = new Main2();
+        LargeFileTest app = new LargeFileTest();
         app.before();
 
         Fuse.getFuse().mount(app.fs, app.mountPoint, app.options);
     }
 }
-
-/* */
