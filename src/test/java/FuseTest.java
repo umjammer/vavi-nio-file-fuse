@@ -5,7 +5,6 @@
  */
 
 import java.nio.file.FileSystem;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,18 +20,34 @@ import vavi.util.Debug;
 
 
 /**
- * Test2. (jimfs, fuse)
+ * FuseTest. (jimfs, fuse)
  * <p>
+ * upload
+ * <ul>
+ * <li> create
+ * <li> write
+ * <li> chmod
+ * <li> chmod
+ * <li> chmod
+ * <li> flush
+ * <li> lock
+ * <li> release
+ * </ul>
+ * download
+ * <ul>
+ * <li> open
+ * <li> read
+ * <li> flush
+ * <li> lock
+ * <li> release
+ * </ul>
+ *
+ * TODO read is not called because of cache???
  *
  * @author <a href="mailto:umjammer@gmail.com">Naohide Sano</a> (umjammer)
  * @version 0.00 2017/03/19 umjammer initial version <br>
  */
-public class Main2 {
-
-    static {
-        System.setProperty("vavi.util.logging.VaviFormatter.extraClassMethod",
-                           "co\\.paralleluniverse\\.fuse\\.LoggedFuseFilesystem#log");
-    }
+public class FuseTest {
 
     FileSystem fs;
     String mountPoint;
@@ -43,6 +58,7 @@ public class Main2 {
 
         mountPoint = System.getenv("FUSE_MOUNT_POINT");
 Debug.println("mountPoint: " + mountPoint);
+Debug.println("jna.library.path: " + System.getProperty("jna.library.path"));
 
         fs = Jimfs.newFileSystem(Configuration.unix());
 
@@ -58,27 +74,33 @@ Debug.println("mountPoint: " + mountPoint);
     @EnabledIfEnvironmentVariable(named = "FUSE_MOUNT_POINT", matches = ".+")
     @ValueSource(strings = {
         "vavi.net.fuse.javafs.JavaFSFuseProvider",
-        "vavi.net.fuse.jnrfuse.JnrFuseFuseProvider",
         "vavi.net.fuse.fusejna.FuseJnaFuseProvider",
+        "vavi.net.fuse.jnrfuse.JnrFuseFuseProvider", // TODO must be last, this provider has umount problem
     })
     public void test01(String providerClassName) throws Exception {
         System.setProperty("vavi.net.fuse.FuseProvider.class", providerClassName);
 System.err.println("--------------------------- " + providerClassName + " ---------------------------");
 
-        Base.testLargeFile(fs, mountPoint, options);
+        Base.testFuse(fs, mountPoint, options);
 
         fs.close();
+
+        Thread.sleep(333);
     }
 
     /**
      * @param args none
      */
     public static void main(String[] args) throws Exception {
-        Main2 app = new Main2();
+        FuseTest app = new FuseTest();
         app.before();
+
+        System.setProperty("vavi.net.fuse.FuseProvider.class", "vavi.net.fuse.javafs.JavaFSFuseProvider");
+//        System.setProperty("vavi.net.fuse.FuseProvider.class", "vavi.net.fuse.fusejna.FuseJnaFuseProvider");
+//        System.setProperty("vavi.net.fuse.FuseProvider.class", "vavi.net.fuse.jnrfuse.JnrFuseFuseProvider");
+
+        app.options.put("allow_other", null);
 
         Fuse.getFuse().mount(app.fs, app.mountPoint, app.options);
     }
 }
-
-/* */

@@ -5,27 +5,24 @@
 
 # vavi-nio-file-fuse
 
-integrated fuse filesystem mounter.
+🌐 mount the world!
 
-this is the api, implementation is provided as SPI.
+integrated fuse filesystem mounter. you can mount any java jsr-203 file system using this.<br/>
+this is an api and implementations are provided as SPI also.
 
-## Providers
+### Providers
 
-| fs                 | list | upload | download | copy | move | rm | mkdir | cache | watch |  library |
-|--------------------|------|--------|----------|------|------|----|-------|-------|-------|---------|
-| javafs      | ✅    | ✅   | ✅       | ✅  | ✅  | ✅  | ✅   | -    |        | [javafs](https://github.com/umjammer/javafs) |
-| fuse-jna    | ✅    | ✅   | ✅       | ✅  | ✅  | ✅  | ✅   | -    |        | [fuse-jna](https://github.com/EtiennePerot/fuse-jna) |
-| jnr-fuse    | ✅    | ✅   | ✅       | ✅  | ✅  | ✅  | ✅   | -    |        | [jnr-fuse](https://github.com/SerCeMan/jnr-fuse) |
+| name     | list | upload | download | copy | move | rm | mkdir | mount | umount | backend                                              |
+|----------|:----:|:------:|:--------:|:----:|:----:|:--:|:-----:|:-----:|:------:|------------------------------------------------------|
+| javafs   |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   ✅    | [javafs](https://github.com/umjammer/javafs)         |
+| fuse-jna |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   ✅    | [fuse-jna](https://github.com/EtiennePerot/fuse-jna) |
+| jnr-fuse |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   🚧   | [jnr-fuse](https://github.com/SerCeMan/jnr-fuse)     |
 
 ## Install
 
 ### maven
 
  * https://jitpack.io/#umjammer/vavi-nio-file-fuse
-
-### jdk argument
-
- * `-Djna.library.path=/usr/local/lib`
 
 ## Usage
 
@@ -36,9 +33,25 @@ this is the api, implementation is provided as SPI.
     Fuse.getFuse().mount(fs, "/your/mout/point", Collections.emptyMap());
 ```
 
-## Workaround
+### jdk argument
+
+* `-Djna.library.path=/usr/local/lib`
+
+### System property
+
+* `vavi.net.fuse.FuseProvider.class` ... set a provider class name when you use the argument-less factory method 
+  - `vavi.net.fuse.javafs.JavaFSFuseProvider`
+  - `vavi.net.fuse.jnrfuse.JnrFuseFuseProvider`
+  - `vavi.net.fuse.fusejna.FuseJnaFuseProvider`
+
+### Workaround
 
  * if the test goes wrong, update macfuse and reboot the mac
+ * `Path#toFile()` UnsupportedOperationException ... mount fs as fuse then `toFile`
+
+## References
+
+ * https://github.com/cryptomator/jfuse (JEP-454)
 
 ## TODO
 
@@ -47,4 +60,5 @@ this is the api, implementation is provided as SPI.
    * https://stackoverflow.com/a/2335565
    * https://wiki.samba.org/index.php/Spotlight_with_Elasticsearch_Backend
    * https://gitlab.com/samba-team/samba/-/blob/master/source3/rpcclient/cmd_spotlight.c
- * `Path#toFile()` UnsupportedOperationException ... mount fs as fuse then `toFile`
+ * fusejnr umount problem
+ * libfuse3 ?

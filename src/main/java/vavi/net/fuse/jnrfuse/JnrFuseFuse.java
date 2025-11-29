@@ -7,6 +7,8 @@
 package vavi.net.fuse.jnrfuse;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.FileSystem;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
@@ -19,7 +21,8 @@ import java.util.concurrent.Executors;
 import co.paralleluniverse.fuse.TypeMode;
 import ru.serce.jnrfuse.FuseStubFS;
 import vavi.net.fuse.Fuse;
-import vavi.util.Debug;
+
+import static java.lang.System.getLogger;
 
 
 /**
@@ -29,6 +32,8 @@ import vavi.util.Debug;
  * @version 0.00 2020/05/29 umjammer initial version <br>
  */
 public class JnrFuseFuse implements Fuse {
+
+    private static final Logger logger = getLogger(JnrFuseFuse.class.getName());
 
     /** key for env, no need to specify value */
     public static final String ENV_IGNORE_APPLE_DOUBLE = JavaNioFileFS.ENV_IGNORE_APPLE_DOUBLE;
@@ -42,13 +47,13 @@ public class JnrFuseFuse implements Fuse {
     private FuseStubFS fuse;
 
     /** non-daemon thread */
-    private ExecutorService es = Executors.newSingleThreadExecutor();
+    private final ExecutorService es = Executors.newSingleThreadExecutor();
 
     @Override
     public void mount(FileSystem fs, String mountPoint, Map<String, Object> env) throws IOException {
         if (env.containsKey(ENV_SINGLE_THREAD) && (Boolean) env.get(ENV_SINGLE_THREAD)) {
             fuse = new SingleThreadJavaNioFileFS(fs, env);
-Debug.println("use single thread");
+logger.log(Level.INFO, "use single thread");
         } else {
             fuse = new JavaNioFileFS(fs, env);
         }
@@ -63,11 +68,11 @@ Debug.println("use single thread");
     @Override
     public void close() throws IOException {
         if (fuse != null) {
-Debug.println("unmount...");
+logger.log(Level.INFO, "unmount...");
+            es.shutdown();
             fuse.umount();
             fuse = null;
-            es.shutdown();
-Debug.println("unmount done");
+logger.log(Level.INFO, "unmount done");
         }
     }
 
@@ -114,5 +119,3 @@ Debug.println("unmount done");
         return permissions;
     }
 }
-
-/* */

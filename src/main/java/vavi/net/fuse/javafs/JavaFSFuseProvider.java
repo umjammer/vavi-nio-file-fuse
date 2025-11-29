@@ -23,5 +23,3 @@ public class JavaFSFuseProvider implements FuseProvider {
         return new JavaFSFuse();
     }
 }
-
-/* */

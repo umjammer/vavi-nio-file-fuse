@@ -7,6 +7,8 @@
 package vavi.net.fuse.jnrfuse;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileStore;
@@ -25,7 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
 
 import jnr.constants.platform.Errno;
 import jnr.ffi.Pointer;
@@ -40,7 +41,8 @@ import ru.serce.jnrfuse.struct.Flock;
 import ru.serce.jnrfuse.struct.FuseFileInfo;
 import ru.serce.jnrfuse.struct.Statvfs;
 import vavi.nio.file.Util;
-import vavi.util.Debug;
+
+import static java.lang.System.getLogger;
 
 
 /**
@@ -50,6 +52,8 @@ import vavi.util.Debug;
  * @version 0.00 2016/02/29 umjammer initial version <br>
  */
 class JavaNioFileFS extends FuseStubFS {
+
+    private static final Logger logger = getLogger(JavaNioFileFS.class.getName());
 
     private static final int BUFFER_SIZE = 0x10000;
 
@@ -73,28 +77,28 @@ class JavaNioFileFS extends FuseStubFS {
     public JavaNioFileFS(FileSystem fileSystem, Map<String, Object> env) {
         this.fileSystem = fileSystem;
         ignoreAppleDouble = JnrFuseFuse.isEnabled(ENV_IGNORE_APPLE_DOUBLE, env);
-Debug.println(Level.FINE, "ENV_IGNORE_APPLE_DOUBLE: " + ignoreAppleDouble);
+logger.log(Level.DEBUG, "ENV_IGNORE_APPLE_DOUBLE: " + ignoreAppleDouble);
     }
 
     @Override
     public int access(String path, int access) {
-Debug.println(Level.FINEST, "access: " + path);
+logger.log(Level.TRACE, "access: " + path);
         try {
             // TODO access
             fileSystem.provider().checkAccess(fileSystem.getPath(path));
             return 0;
         } catch (NoSuchFileException e) {
-Debug.println(e);
+logger.log(Level.INFO, e);
             return -ErrorCodes.ENOENT();
         } catch (IOException e) {
-Debug.println(e);
+logger.log(Level.INFO, e);
             return -ErrorCodes.EACCES();
         }
     }
 
     @Override
     public int create(String path, @mode_t long mode, FuseFileInfo info) {
-Debug.println(Level.FINE, "create: " + path);
+logger.log(Level.DEBUG, "create: " + path);
         try {
             Set<OpenOption> options = new HashSet<>();
             options.add(StandardOpenOption.WRITE);
@@ -106,14 +110,14 @@ Debug.println(Level.FINE, "create: " + path);
 
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int getattr(String path, FileStat stat) {
-Debug.println(Level.FINEST, "getattr: " + path);
+logger.log(Level.TRACE, "getattr: " + path);
         try {
             BasicFileAttributes attributes =
                     fileSystem.provider().readAttributes(fileSystem.getPath(path), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
@@ -145,20 +149,20 @@ Debug.println(Level.FINEST, "getattr: " + path);
             return 0;
         } catch (NoSuchFileException e) {
             if (e.getMessage().startsWith("ignore apple double file:")) {
-Debug.println(Level.FINEST, e.getMessage());
+logger.log(Level.TRACE, e.getMessage());
                 return 0;
             } else {
                 if (ignoreAppleDouble) {
                     if (Util.isAppleDouble(path)) {
-Debug.println(Level.FINEST, e.getMessage());
+logger.log(Level.TRACE, e.getMessage());
                     } else {
-Debug.println(Level.FINE, e);
+logger.log(Level.DEBUG, e);
                     }
                 }
                 return -ErrorCodes.ENOENT();
             }
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
@@ -166,18 +170,18 @@ Debug.printStackTrace(e);
     @Override
     public int fgetattr(String path, FileStat stat, FuseFileInfo info)
     {
-Debug.println(Level.FINE, "fgetattr: " + path);
+logger.log(Level.DEBUG, "fgetattr: " + path);
         return getattr(path, stat);
     }
 
     @Override
     public int mkdir(String path, @mode_t long mode) {
-Debug.println(Level.FINE, "mkdir: " + path);
+logger.log(Level.DEBUG, "mkdir: " + path);
         try {
             fileSystem.provider().createDirectory(fileSystem.getPath(path));
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
@@ -191,56 +195,56 @@ Debug.printStackTrace(e);
             long fh = fileHandle.incrementAndGet();
             fileHandles.put(fh, channel);
             info.fh.set(fh);
-Debug.println(Level.FINE, "open: " + path + ", fh: " + fh);
+logger.log(Level.DEBUG, "open: " + path + ", fh: " + fh);
 
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int read(String path, Pointer buf, long size, long offset, FuseFileInfo info) {
-Debug.println(Level.FINE, "read: " + path + ", " + offset + ", " + size + ", fh: " + info.fh.get());
+logger.log(Level.DEBUG, "read: " + path + ", " + offset + ", " + size + ", fh: " + info.fh.get());
         try {
             if (fileHandles.containsKey(info.fh.get())) {
                 SeekableByteChannel channel = fileHandles.get(info.fh.get());
                 channel.position(offset);
                 ByteBuffer bb = ByteBuffer.allocate(BUFFER_SIZE);
                 long pos = 0;
-Debug.printf(Level.FINER, "Attempting to read %d-%d:", offset, offset + size);
+logger.log(Level.TRACE, "Attempting to read %d-%d:".formatted(offset, offset + size));
                 do {
                     bb.clear();
                     bb.limit((int) Math.min(bb.capacity(), size - pos));
                     int read = channel.read(bb);
                     if (read == -1) {
-Debug.println(Level.FINER, "Reached EOF");
+logger.log(Level.TRACE, "Reached EOF");
                         return (int) pos; // reached EOF TODO: wtf cast
                     } else {
-Debug.printf(Level.FINER, "Reading %d-%d", offset + pos, offset + pos + read);
+logger.log(Level.TRACE, "Reading %d-%d".formatted(offset + pos, offset + pos + read));
                         buf.put(pos, bb.array(), 0, read);
                         pos += read;
                     }
                 } while (pos < size);
                 return (int) pos;
             } else {
-Debug.println(Level.FINE, "read: no fh: " + path);
+logger.log(Level.DEBUG, "read: no fh: " + path);
                 return -ErrorCodes.EEXIST();
             }
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int readdir(String path, Pointer buf, FuseFillDir filler, @off_t long offset, FuseFileInfo info) {
-Debug.println(Level.FINER, "readdir: " + path);
+logger.log(Level.TRACE, "readdir: " + path);
         try {
             fileSystem.provider().newDirectoryStream(fileSystem.getPath(path), p -> true)
                 .forEach(p -> {
-Debug.println(Level.FINER, "p: " + p);
+logger.log(Level.TRACE, "p: " + p);
                     try {
                         filler.apply(buf, Util.toFilenameString(p), null, 0);
                     } catch (IOException e) {
@@ -249,57 +253,57 @@ Debug.println(Level.FINER, "p: " + p);
                 });
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int rename(String path, String newName) {
-Debug.println(Level.FINE, "rename: " + path);
+logger.log(Level.DEBUG, "rename: " + path);
         try {
             fileSystem.provider().move(fileSystem.getPath(path), fileSystem.getPath(newName));
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int rmdir(String path) {
-Debug.println(Level.FINE, "rmdir: " + path);
+logger.log(Level.DEBUG, "rmdir: " + path);
         try {
             fileSystem.provider().delete(fileSystem.getPath(path));
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int truncate(String path, long offset) {
-Debug.println(Level.FINE, "truncate: " + path);
+logger.log(Level.DEBUG, "truncate: " + path);
         // TODO
         return -ErrorCodes.ENOSYS();
     }
 
     @Override
     public int unlink(String path) {
-Debug.println(Level.FINE, "unlink: " + path);
+logger.log(Level.DEBUG, "unlink: " + path);
         try {
             fileSystem.provider().delete(fileSystem.getPath(path));
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int write(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo info) {
-Debug.println(Level.FINE, "write: " + path + ", " + offset + ", " + size + ", fh: " + info.fh.get());
+logger.log(Level.DEBUG, "write: " + path + ", " + offset + ", " + size + ", fh: " + info.fh.get());
         try {
             if (fileHandles.containsKey(info.fh.get())) {
                 ByteBuffer bb = ByteBuffer.allocate(BUFFER_SIZE);
@@ -311,10 +315,10 @@ try { // TODO ad-hoc
  if (e.getMessage().contains("@vavi")) {
   long o = Long.parseLong(e.getMessage().substring(9, e.getMessage().length() - 1));
   if (offset > o) {
-   Debug.println(Level.SEVERE, "write: skip bad position: " + offset);
+   logger.log(Level.ERROR, "write: skip bad position: " + offset);
    throw new IOException("cannot skip last bytes send", e);
   } else {
-   Debug.println(Level.WARNING, "write: correct bad position: " + offset + " -> " + o);
+   logger.log(Level.WARNING, "write: correct bad position: " + offset + " -> " + o);
    return Math.min((int) (o - offset), (int) size);
   }
  } else {
@@ -335,18 +339,18 @@ try { // TODO ad-hoc
                 return -ErrorCodes.EEXIST();
             }
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int statfs(String path, Statvfs stbuf) {
-Debug.println(Level.FINEST, "statfs: " + path);
+logger.log(Level.TRACE, "statfs: " + path);
         try {
             FileStore fileStore = fileSystem.getFileStores().iterator().next();
-//Debug.println("total: " + fileStore.getTotalSpace());
-//Debug.println("free: " + fileStore.getUsableSpace());
+//logger.log(Level.INFO, "total: " + fileStore.getTotalSpace());
+//logger.log(Level.INFO, "free: " + fileStore.getUsableSpace());
 
             long blockSize = 512;
 
@@ -365,14 +369,14 @@ Debug.println(Level.FINEST, "statfs: " + path);
 
             return 0;
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int chmod(String path, @mode_t long mode) {
-Debug.println(Level.FINE, "chmod: " + path);
+logger.log(Level.DEBUG, "chmod: " + path);
         try {
             if (fileSystem.provider().getFileStore(fileSystem.getPath(path)).supportsFileAttributeView(PosixFileAttributeView.class)) {
                 PosixFileAttributeView attrs = fileSystem.provider().getFileAttributeView(fileSystem.getPath(path), PosixFileAttributeView.class);
@@ -382,25 +386,25 @@ Debug.println(Level.FINE, "chmod: " + path);
                 return -Errno.EAFNOSUPPORT.ordinal();
             }
         } catch (Exception e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         }
     }
 
     @Override
     public int release(String path, FuseFileInfo info) {
-Debug.println(Level.FINE, "release: " + path + ", fh: " + info.fh.get());
+logger.log(Level.DEBUG, "release: " + path + ", fh: " + info.fh.get());
         try {
             if (fileHandles.containsKey(info.fh.get())) {
                 SeekableByteChannel channel = fileHandles.get(info.fh.get());
                 channel.close();
                 return 0;
             } else {
-Debug.println(Level.FINE, "release: no fh: " + path);
+logger.log(Level.DEBUG, "release: no fh: " + path);
                 return -ErrorCodes.EEXIST();
             }
         } catch (IOException e) {
-Debug.printStackTrace(e);
+logger.log(Level.ERROR, e.getMessage(), e);
             return -ErrorCodes.EIO();
         } finally {
             fileHandles.remove(info.fh.get());
@@ -409,7 +413,7 @@ Debug.printStackTrace(e);
 
     @Override
     public int lock(String path, FuseFileInfo info, int cmd, Flock flock) {
-Debug.println(Level.FINE, "lock: " + path + ", fh: " + info.fh.get());
+logger.log(Level.DEBUG, "lock: " + path + ", fh: " + info.fh.get());
         return 0;
     }
 }

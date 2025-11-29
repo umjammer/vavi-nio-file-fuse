@@ -47,5 +47,3 @@ public interface Fuse extends Closeable {
         return map.containsKey(key) && (map.get(key) == null || (boolean) map.get(key));
     }
 }
-
-/* */

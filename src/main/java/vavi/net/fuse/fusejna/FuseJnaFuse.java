@@ -7,20 +7,22 @@
 package vavi.net.fuse.fusejna;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.FileSystem;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import vavi.net.fuse.Fuse;
-import vavi.util.Debug;
 
 import co.paralleluniverse.fuse.TypeMode;
 import net.fusejna.FuseException;
 import net.fusejna.FuseFilesystem;
+
+import static java.lang.System.getLogger;
 
 
 /**
@@ -30,6 +32,8 @@ import net.fusejna.FuseFilesystem;
  * @version 0.00 2020/05/29 umjammer initial version <br>
  */
 public class FuseJnaFuse implements Fuse {
+
+    private static final Logger logger = getLogger(FuseJnaFuse.class.getName());
 
     /** key for env, no need to specify value */
     public static final String ENV_IGNORE_APPLE_DOUBLE = JavaNioFileFS.ENV_IGNORE_APPLE_DOUBLE;
@@ -47,7 +51,7 @@ public class FuseJnaFuse implements Fuse {
         try {
             if (env.containsKey(ENV_SINGLE_THREAD) && (Boolean) env.get(ENV_SINGLE_THREAD)) {
                 fuse = new SingleThreadJavaNioFileFS(fs, env);
-Debug.println("use single thread");
+logger.log(Level.INFO, "use single thread");
             } else {
                 fuse = new JavaNioFileFS(fs, env);
             }
@@ -62,13 +66,13 @@ Debug.println("use single thread");
     public void close() throws IOException {
         try {
             if (fuse != null) {
-Debug.println("unmount...");
+logger.log(Level.INFO, "unmount...");
                 fuse.unmount();
                 fuse = null;
-Debug.println("unmount done");
+logger.log(Level.INFO, "unmount done");
             }
         } catch (FuseException e) {
-Debug.println(Level.WARNING, "unmount: " + e);
+logger.log(Level.WARNING, "unmount: " + e);
             throw new IOException(e);
         }
     }
@@ -116,5 +120,3 @@ Debug.println(Level.WARNING, "unmount: " + e);
         return permissions;
     }
 }
-
-/* */
