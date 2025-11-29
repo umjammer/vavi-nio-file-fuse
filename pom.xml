@@ -6,7 +6,7 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-nio-file-fuse</artifactId>
-  <version>0.0.16</version>
+  <version>0.0.17</version>
 
   <name>vavi-nio-file-fuse</name>
   <url>https://github.com/umjammer/vavi-nio-file-fuse</url>
