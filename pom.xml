@@ -6,7 +6,7 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-nio-file-fuse</artifactId>
-  <version>0.0.17</version>
+  <version>0.0.18</version>
 
   <name>vavi-nio-file-fuse</name>
   <url>https://github.com/umjammer/vavi-nio-file-fuse</url>
@@ -74,6 +74,8 @@
                 -Djava.util.logging.config.file=${project.build.testOutputDirectory}/logging.properties
                 -Djna.library.path=@{native.library.path}
               </argLine>
+              <trimStackTrace>false</trimStackTrace>
+              <forkCount>1</forkCount>
             </configuration>
           </plugin>
         </plugins>
@@ -118,7 +120,7 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.13.4</version>
+        <version>6.1.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -129,7 +131,7 @@
     <dependency> <!-- fuse javafs (jnr) -->
       <groupId>com.github.umjammer</groupId> <!-- co.paralleluniverse / com.github.umjammer -->
       <artifactId>javafs</artifactId>
-      <version>0.1.8v</version>
+      <version>0.1.9v</version>
     </dependency>
     <dependency> <!-- fuse jna -->
       <groupId>com.github.umjammer</groupId> <!--  net.fuse-jna / com.github.umjammer -->
@@ -139,20 +141,31 @@
     <dependency> <!-- fuse jnr -->
       <groupId>com.github.serceman</groupId>
       <artifactId>jnr-fuse</artifactId>
-      <version>0.5.7</version>
+      <version>0.5.8</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.umjammer</groupId>
       <artifactId>vavi-commons</artifactId>
-      <version>1.1.16</version>
+      <version>1.1.24</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.umjammer</groupId> <!-- com.github.fge / com.github.umjammer -->
       <artifactId>vavi-nio-file-base</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.19</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>jetty-http</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
+<dependency>
+  <groupId>org.eclipse.jetty</groupId>
+  <artifactId>jetty-http</artifactId>
+  <version>12.1.14</version>
+</dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -178,7 +191,7 @@
     <dependency>
       <groupId>com.google.jimfs</groupId>
       <artifactId>jimfs</artifactId>
-      <version>1.3.1</version>
+      <version>1.3.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

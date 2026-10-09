@@ -10,13 +10,17 @@ import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import co.paralleluniverse.fuse.TypeMode;
 import ru.serce.jnrfuse.FuseStubFS;
@@ -49,6 +53,12 @@ public class JnrFuseFuse implements Fuse {
     /** non-daemon thread */
     private final ExecutorService es = Executors.newSingleThreadExecutor();
 
+    /** max time to wait for mounting/unmounting is done */
+    private static final long TIMEOUT_MILLIS = 10_000;
+
+    /** */
+    private Path mountPoint;
+
     @Override
     public void mount(FileSystem fs, String mountPoint, Map<String, Object> env) throws IOException {
         if (env.containsKey(ENV_SINGLE_THREAD) && (Boolean) env.get(ENV_SINGLE_THREAD)) {
@@ -57,12 +67,35 @@ logger.log(Level.INFO, "use single thread");
         } else {
             fuse = new JavaNioFileFS(fs, env);
         }
-        es.submit(() -> {
+        this.mountPoint = Paths.get(mountPoint).toAbsolutePath();
+        Future<?> mounting = es.submit(() -> {
             // jnrfuse non-blocking thread is daemon
             // so make mount blocking and make own non-daemon thread
-            fuse.mount(Paths.get(mountPoint), true);
+            fuse.mount(this.mountPoint, true);
         });
         Runtime.getRuntime().addShutdownHook(new Thread(() -> { try { close(); } catch (IOException e) { e.printStackTrace(); }}));
+
+        // the blocking mount returns only when unmounted, so wait the mount point is mounted actually.
+        // without this, operations right after this method go to the mount point directory itself,
+        // and an unmount before the mount is done leaves an orphan mount.
+        long limit = System.currentTimeMillis() + TIMEOUT_MILLIS;
+        while (!isMounted(this.mountPoint, false)) {
+            if (mounting.isDone()) {
+                try {
+                    mounting.get();
+                } catch (ExecutionException e) {
+                    throw new IOException("mount failed: " + mountPoint, e.getCause());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                throw new IOException("mount failed: " + mountPoint);
+            }
+            if (System.currentTimeMillis() > limit) {
+                throw new IOException("mount timeout: " + mountPoint);
+            }
+            sleep();
+        }
+logger.log(Level.DEBUG, "mounted: " + mountPoint);
     }
 
     @Override
@@ -72,7 +105,37 @@ logger.log(Level.INFO, "unmount...");
             es.shutdown();
             fuse.umount();
             fuse = null;
+            // umount might be asynchronous
+            long limit = System.currentTimeMillis() + TIMEOUT_MILLIS;
+            while (isMounted(mountPoint, true)) {
+                if (System.currentTimeMillis() > limit) {
+                    throw new IOException("unmount timeout: " + mountPoint);
+                }
+                sleep();
+            }
 logger.log(Level.INFO, "unmount done");
+        }
+    }
+
+    /**
+     * a mount point is on the different file store from its parent while mounted
+     * @param whenError the result when the mount point cannot be accessed (e.g. EIO by a fuse daemon not ready or dead)
+     */
+    private static boolean isMounted(Path mountPoint, boolean whenError) {
+        try {
+            return !Files.getFileStore(mountPoint).equals(Files.getFileStore(mountPoint.getParent()));
+        } catch (IOException e) {
+            return whenError;
+        }
+    }
+
+    /** */
+    private static void sleep() throws IOException {
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException(e);
         }
     }
 
