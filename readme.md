@@ -16,7 +16,7 @@ this is an api and implementations are provided as SPI also.
 |----------|:----:|:------:|:--------:|:----:|:----:|:--:|:-----:|:-----:|:------:|------------------------------------------------------|
 | javafs   |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   ✅    | [javafs](https://github.com/umjammer/javafs)         |
 | fuse-jna |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   ✅    | [fuse-jna](https://github.com/EtiennePerot/fuse-jna) |
-| jnr-fuse |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   🚧   | [jnr-fuse](https://github.com/SerCeMan/jnr-fuse)     |
+| jnr-fuse |  ✅   |   ✅    |    ✅     |  ✅   |  ✅   | ✅  |   ✅   |   ✅   |   ✅    | [jnr-fuse](https://github.com/SerCeMan/jnr-fuse)     |
 
 ## Install
 
